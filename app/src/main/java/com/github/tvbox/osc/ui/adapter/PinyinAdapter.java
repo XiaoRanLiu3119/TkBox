@@ -7,8 +7,9 @@ import com.github.tvbox.osc.R;
 import java.util.ArrayList;
 
 public class PinyinAdapter extends BaseQuickAdapter<String, BaseViewHolder> {
-    public PinyinAdapter() {
-        super(R.layout.item_search_word_hot, new ArrayList<>());
+
+    public PinyinAdapter(boolean isWrapTv) {
+        super(isWrapTv? R.layout.item_search_word_history : R.layout.item_search_word_hot, new ArrayList<>());
     }
 
     @Override

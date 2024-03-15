@@ -26,6 +26,7 @@ import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.github.catvod.crawler.JsLoader;
@@ -55,6 +56,9 @@ import com.github.tvbox.osc.util.HawkConfig;
 import com.github.tvbox.osc.util.SearchHelper;
 import com.github.tvbox.osc.util.SettingsUtil;
 import com.github.tvbox.osc.viewmodel.SourceViewModel;
+import com.google.android.flexbox.FlexDirection;
+import com.google.android.flexbox.FlexboxLayoutManager;
+import com.google.android.flexbox.JustifyContent;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -80,7 +84,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import com.yang.flowlayoutlibrary.FlowLayout;
 
 import me.jessyan.autosize.utils.AutoSizeUtils;
 
@@ -107,7 +110,7 @@ public class SearchActivity extends BaseActivity {
     private TextView filterBtn;
     
     private RelativeLayout searchTips;
-    private FlowLayout tv_history;
+    private RecyclerView rvHistory;
     private LinearLayout llWord;   
 
     private ImageView clearHistory;
@@ -199,7 +202,7 @@ public class SearchActivity extends BaseActivity {
         filterBtn = findViewById(R.id.filterBtn);
         tHotSearchText = findViewById(R.id.mHotSearch_text);
         searchTips = findViewById(R.id.search_tips);
-        tv_history = findViewById(R.id.tv_history);
+        rvHistory = findViewById(R.id.rv_history);
         clearHistory = findViewById(R.id.clear_history);
         tvClear = findViewById(R.id.tvClear);
         tvAddress = findViewById(R.id.tvAddress);
@@ -209,7 +212,7 @@ public class SearchActivity extends BaseActivity {
         mGridViewWord = findViewById(R.id.mGridViewWord);
         mGridViewWord.setHasFixedSize(true);
         mGridViewWord.setLayoutManager(new V7LinearLayoutManager(this.mContext, 1, false));
-        wordAdapter = new PinyinAdapter();
+        wordAdapter = new PinyinAdapter(false);
         mGridViewWord.setAdapter(wordAdapter);
         
         wordAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
@@ -301,7 +304,7 @@ public class SearchActivity extends BaseActivity {
                 keyword = s.toString().trim();
                 if (TextUtils.isEmpty(keyword)) {
                     cancel();
-                    tv_history.setVisibility(View.VISIBLE);
+                    rvHistory.setVisibility(View.VISIBLE);
                     searchTips.setVisibility(View.VISIBLE);
                     llWord.setVisibility(View.VISIBLE);
                     mGridView.setVisibility(View.GONE);
@@ -522,18 +525,24 @@ public class SearchActivity extends BaseActivity {
             historyList.add(history.searchKeyWords);
         }
         Collections.reverse(historyList);
-        tv_history.setViews(historyList, new FlowLayout.OnItemClickListener() {
-            public void onItemClick(String content) {
-            	etSearch.setText(content);
-            	if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){                      	
-                    Bundle bundle = new Bundle();
-                    bundle.putString("title", content);
-                    refreshSearchHistory(content);
-                    jumpActivity(FastSearchActivity.class, bundle);
-                } else {
-                	search(content);                
+        PinyinAdapter pinyinAdapter = new PinyinAdapter(true);
+        pinyinAdapter.setNewData(historyList);
+        FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(this);
+        layoutManager.setFlexDirection(FlexDirection.ROW);
+        layoutManager.setJustifyContent(JustifyContent.FLEX_START);
+        rvHistory.setLayoutManager(layoutManager);
+        rvHistory.setAdapter(pinyinAdapter);
+        pinyinAdapter.setOnItemClickListener((baseQuickAdapter, view, i) -> {
+            String content = (String) baseQuickAdapter.getItem(i);
+            etSearch.setText(content);
+            if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
+                Bundle bundle = new Bundle();
+                bundle.putString("title", content);
+                refreshSearchHistory(content);
+                jumpActivity(FastSearchActivity.class, bundle);
+            } else {
+                search(content);
                 //etSearch.setSelection(etSearch.getText().length());
-                }
             }
         });
     }
@@ -765,10 +774,17 @@ public class SearchActivity extends BaseActivity {
             } else {
                 showSuccess();
                 searchAdapter.setNewData(data);
-                tv_history.setVisibility(View.GONE);
-                searchTips.setVisibility(View.GONE);
-                llWord.setVisibility(View.GONE);
-                mGridView.setVisibility(View.VISIBLE);
+                if(Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
+                    rvHistory.setVisibility(View.VISIBLE);
+                    searchTips.setVisibility(View.VISIBLE);
+                    llWord.setVisibility(View.VISIBLE);
+                    mGridView.setVisibility(View.GONE);
+                }else {
+                    rvHistory.setVisibility(View.GONE);
+                    searchTips.setVisibility(View.GONE);
+                    llWord.setVisibility(View.GONE);
+                    mGridView.setVisibility(View.VISIBLE);
+                }
             }
         }
 
